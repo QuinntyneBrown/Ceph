@@ -18,6 +18,9 @@ public class EnvironmentChecker
             CheckDockerDaemon(),
             CheckDockerComposeInstalled(),
             CheckWsl2MemoryConfiguration(),
+            CheckDiskSpace(),
+            CheckDockerNetworkConflict(),
+            CheckDockerWsl2Backend(),
         };
         return results;
     }
@@ -148,6 +151,104 @@ public class EnvironmentChecker
             hasMemorySetting ? $"~/.wslconfig has a memory setting – OK." : $"~/.wslconfig exists but does not set 'memory'. Ceph may run out of memory.",
             hasMemorySetting ? null : $"Add 'memory=4GB' under the [wsl2] section in {wslConfigPath}"
         );
+    }
+
+    public CheckResult CheckDiskSpace()
+    {
+        try
+        {
+            string root = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? "C:\\";
+            var drive = new DriveInfo(root);
+            long freeGb = drive.AvailableFreeSpace / (1024L * 1024 * 1024);
+            // Ceph image is ~500 MB and each OSD needs space for data
+            bool passed = freeGb >= 10;
+            return new CheckResult(
+                "Disk space",
+                passed,
+                passed ? $"Drive {drive.Name} has {freeGb} GB free – OK." : $"Drive {drive.Name} only has {freeGb} GB free. Ceph needs at least 10 GB.",
+                passed ? null : "Free up disk space or move Docker's data directory to a larger drive."
+            );
+        }
+        catch (Exception ex)
+        {
+            return new CheckResult("Disk space", false, $"Could not check disk space: {ex.Message}");
+        }
+    }
+
+    public CheckResult CheckDockerNetworkConflict()
+    {
+        try
+        {
+            var result = RunProcess("docker", "network ls --format {{.Name}}", captureOutput: true);
+            if (result.exitCode != 0)
+                return new CheckResult("Docker network conflict", true, "Skipped – Docker not reachable.");
+
+            // Check if any existing network uses the 172.20.0.0/16 subnet
+            var inspectResult = RunProcess("docker", "network ls -q", captureOutput: true);
+            if (inspectResult.exitCode != 0 || string.IsNullOrWhiteSpace(inspectResult.output))
+                return new CheckResult("Docker network conflict", true, "No Docker networks found – OK.");
+
+            var networkIds = inspectResult.output.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var id in networkIds)
+            {
+                var info = RunProcess("docker", $"network inspect {id.Trim()} --format {{{{range .IPAM.Config}}}}{{{{.Subnet}}}}{{{{end}}}}", captureOutput: true);
+                if (info.exitCode == 0 && info.output.Contains("172.20."))
+                {
+                    var nameInfo = RunProcess("docker", $"network inspect {id.Trim()} --format {{{{.Name}}}}", captureOutput: true);
+                    string netName = nameInfo.output.Trim();
+                    return new CheckResult(
+                        "Docker network conflict",
+                        false,
+                        $"Docker network '{netName}' already uses subnet 172.20.x.x which conflicts with Ceph.",
+                        $"Remove the conflicting network: docker network rm {netName}  (or use 'ceph-cli init' with a different --network-subnet)"
+                    );
+                }
+            }
+
+            return new CheckResult("Docker network conflict", true, "No Docker network conflicts detected – OK.");
+        }
+        catch
+        {
+            return new CheckResult("Docker network conflict", true, "Skipped – could not inspect Docker networks.");
+        }
+    }
+
+    public CheckResult CheckDockerWsl2Backend()
+    {
+        if (!OperatingSystem.IsWindows())
+            return new CheckResult("Docker WSL2 backend", true, "Skipped – not running on Windows.");
+
+        try
+        {
+            var result = RunProcess("docker", "info --format {{.Isolation}}", captureOutput: true);
+            if (result.exitCode != 0)
+                return new CheckResult("Docker WSL2 backend", true, "Skipped – Docker not reachable.");
+
+            // Check docker info for WSL2 indicators
+            var fullInfo = RunProcess("docker", "info", captureOutput: true);
+            if (fullInfo.exitCode == 0)
+            {
+                bool usesWsl2 = fullInfo.output.Contains("WSL", StringComparison.OrdinalIgnoreCase)
+                    || fullInfo.output.Contains("linux", StringComparison.OrdinalIgnoreCase);
+                if (usesWsl2)
+                    return new CheckResult("Docker WSL2 backend", true, "Docker is using the WSL2 backend – OK.");
+
+                bool usesHyperV = fullInfo.output.Contains("Hyper-V", StringComparison.OrdinalIgnoreCase);
+                if (usesHyperV)
+                    return new CheckResult(
+                        "Docker WSL2 backend",
+                        false,
+                        "Docker Desktop appears to be using the Hyper-V backend instead of WSL2.",
+                        "Open Docker Desktop Settings > General > enable 'Use the WSL 2 based engine', then restart Docker Desktop."
+                    );
+            }
+
+            return new CheckResult("Docker WSL2 backend", true, "Could not determine Docker backend – assuming WSL2.");
+        }
+        catch
+        {
+            return new CheckResult("Docker WSL2 backend", true, "Skipped – could not check Docker backend.");
+        }
     }
 
     // -------------------------------------------------------------------------

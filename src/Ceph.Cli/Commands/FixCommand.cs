@@ -31,10 +31,11 @@ public class FixCommand : Command
     {
         if (dryRun)
         {
-            Console.WriteLine("[DRY RUN] The following fixes would be applied:");
+            Console.WriteLine("[DRY RUN] The following fixes would be applied if needed:");
             Console.WriteLine("  • Set WSL2 as the default version (wsl --set-default-version 2)");
             Console.WriteLine("  • Update ~/.wslconfig with recommended memory/swap settings");
             Console.WriteLine("  • Start Docker Desktop if it is not running");
+            Console.WriteLine("  • Remove conflicting Docker networks on the 172.20.x.x subnet");
             Console.WriteLine();
             Console.WriteLine("Re-run without --dry-run to apply the fixes.");
             return;
@@ -82,6 +83,30 @@ public class FixCommand : Command
         else
         {
             Console.WriteLine("  ✔  Docker daemon – already running.");
+        }
+
+        // Fix Docker network conflict
+        if (diagnostics.TryGetValue("Docker network conflict", out var netCheck) && !netCheck.Passed)
+        {
+            Console.Write("  Fixing Docker network conflict... ");
+            var result = fixer.FixDockerNetworkConflict();
+            PrintFixResult(result);
+        }
+        else
+        {
+            Console.WriteLine("  ✔  Docker network – no conflicts.");
+        }
+
+        // Disk space – informational only, cannot auto-fix
+        if (diagnostics.TryGetValue("Disk space", out var diskCheck) && !diskCheck.Passed)
+        {
+            Console.WriteLine($"  \x1b[33m!\x1b[0m  Disk space is low. Free up space before starting the cluster.");
+        }
+
+        // Docker WSL2 backend – informational only, user must toggle in Docker Desktop settings
+        if (diagnostics.TryGetValue("Docker WSL2 backend", out var backendCheck) && !backendCheck.Passed)
+        {
+            Console.WriteLine($"  \x1b[33m!\x1b[0m  Docker WSL2 backend: {backendCheck.RemediationHint}");
         }
 
         Console.WriteLine();

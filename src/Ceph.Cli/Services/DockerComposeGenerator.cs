@@ -33,6 +33,16 @@ public class DockerComposeGenerator
         return files;
     }
 
+    /// <summary>
+    /// Writes text with Unix LF line endings. Files mounted into Linux containers
+    /// will break if they contain Windows CRLF line endings.
+    /// </summary>
+    private static void WriteUnixText(string path, string content)
+    {
+        content = content.Replace("\r\n", "\n");
+        File.WriteAllBytes(path, System.Text.Encoding.UTF8.GetBytes(content));
+    }
+
     // -------------------------------------------------------------------------
     // docker-compose.yml
     // -------------------------------------------------------------------------
@@ -54,22 +64,26 @@ public class DockerComposeGenerator
             sb.AppendLine($"    image: {options.CephImage}");
             sb.AppendLine($"    container_name: {name}");
             sb.AppendLine("    restart: unless-stopped");
+            sb.AppendLine("    entrypoint: /entrypoint.sh");
             sb.AppendLine("    env_file: .env");
             sb.AppendLine("    environment:");
             sb.AppendLine($"      - MON_IP={ip}");
             sb.AppendLine("      - CEPH_DAEMON=MON");
+            sb.AppendLine($"      - CEPH_PUBLIC_NETWORK={options.ClusterNetwork}");
             sb.AppendLine("    volumes:");
             sb.AppendLine($"      - {name}-data:/var/lib/ceph");
-            sb.AppendLine("      - ./ceph.conf:/etc/ceph/ceph.conf:ro");
+            sb.AppendLine("      - ceph-etc:/etc/ceph");
+            sb.AppendLine("      - ./ceph.conf:/ceph.conf.seed:ro");
             sb.AppendLine("      - ./entrypoint.sh:/entrypoint.sh:ro");
             sb.AppendLine("    networks:");
             sb.AppendLine("      ceph-net:");
             sb.AppendLine($"        ipv4_address: {ip}");
             sb.AppendLine("    healthcheck:");
-            sb.AppendLine("      test: [\"CMD\", \"ceph\", \"health\"]");
+            sb.AppendLine("      test: [\"CMD\", \"ceph\", \"--connect-timeout\", \"5\", \"health\"]");
             sb.AppendLine("      interval: 30s");
             sb.AppendLine("      timeout: 10s");
             sb.AppendLine("      retries: 5");
+            sb.AppendLine("      start_period: 60s");
             sb.AppendLine();
         }
 
@@ -82,14 +96,18 @@ public class DockerComposeGenerator
             sb.AppendLine($"    image: {options.CephImage}");
             sb.AppendLine($"    container_name: {name}");
             sb.AppendLine("    restart: unless-stopped");
+            sb.AppendLine("    entrypoint: /entrypoint.sh");
             sb.AppendLine("    env_file: .env");
             sb.AppendLine("    environment:");
             sb.AppendLine("      - CEPH_DAEMON=MGR");
+            sb.AppendLine($"      - CEPH_PUBLIC_NETWORK={options.ClusterNetwork}");
             sb.AppendLine("    volumes:");
             sb.AppendLine($"      - {name}-data:/var/lib/ceph");
-            sb.AppendLine("      - ./ceph.conf:/etc/ceph/ceph.conf:ro");
+            sb.AppendLine("      - ceph-etc:/etc/ceph");
+            sb.AppendLine("      - ./entrypoint.sh:/entrypoint.sh:ro");
             sb.AppendLine("    depends_on:");
-            sb.AppendLine("      - ceph-mon1");
+            sb.AppendLine("      ceph-mon1:");
+            sb.AppendLine("        condition: service_healthy");
             sb.AppendLine("    networks:");
             sb.AppendLine("      ceph-net:");
             sb.AppendLine($"        ipv4_address: {ip}");
@@ -105,15 +123,18 @@ public class DockerComposeGenerator
             sb.AppendLine($"    image: {options.CephImage}");
             sb.AppendLine($"    container_name: {name}");
             sb.AppendLine("    restart: unless-stopped");
+            sb.AppendLine("    entrypoint: /entrypoint.sh");
             sb.AppendLine("    env_file: .env");
             sb.AppendLine("    environment:");
             sb.AppendLine("      - CEPH_DAEMON=OSD_DIRECTORY");
+            sb.AppendLine($"      - CEPH_PUBLIC_NETWORK={options.ClusterNetwork}");
             sb.AppendLine("    volumes:");
-            sb.AppendLine($"      - {name}-data:/var/lib/ceph/osd");
-            sb.AppendLine("      - ./ceph.conf:/etc/ceph/ceph.conf:ro");
+            sb.AppendLine($"      - {name}-data:/var/lib/ceph");
+            sb.AppendLine("      - ceph-etc:/etc/ceph");
+            sb.AppendLine("      - ./entrypoint.sh:/entrypoint.sh:ro");
             sb.AppendLine("    depends_on:");
-            sb.AppendLine("      - ceph-mon1");
-            sb.AppendLine("      - ceph-mgr1");
+            sb.AppendLine("      ceph-mon1:");
+            sb.AppendLine("        condition: service_healthy");
             sb.AppendLine("    privileged: true");
             sb.AppendLine("    networks:");
             sb.AppendLine("      ceph-net:");
@@ -128,16 +149,20 @@ public class DockerComposeGenerator
             sb.AppendLine($"    image: {options.CephImage}");
             sb.AppendLine("    container_name: ceph-rgw");
             sb.AppendLine("    restart: unless-stopped");
+            sb.AppendLine("    entrypoint: /entrypoint.sh");
             sb.AppendLine("    env_file: .env");
             sb.AppendLine("    environment:");
             sb.AppendLine("      - CEPH_DAEMON=RGW");
+            sb.AppendLine($"      - CEPH_PUBLIC_NETWORK={options.ClusterNetwork}");
             sb.AppendLine("    volumes:");
             sb.AppendLine("      - ceph-rgw-data:/var/lib/ceph");
-            sb.AppendLine("      - ./ceph.conf:/etc/ceph/ceph.conf:ro");
+            sb.AppendLine("      - ceph-etc:/etc/ceph");
+            sb.AppendLine("      - ./entrypoint.sh:/entrypoint.sh:ro");
             sb.AppendLine("    ports:");
             sb.AppendLine("      - \"7480:7480\"");
             sb.AppendLine("    depends_on:");
-            sb.AppendLine("      - ceph-mon1");
+            sb.AppendLine("      ceph-mon1:");
+            sb.AppendLine("        condition: service_healthy");
             sb.AppendLine("    networks:");
             sb.AppendLine("      ceph-net:");
             sb.AppendLine("        ipv4_address: 172.20.4.1");
@@ -151,14 +176,18 @@ public class DockerComposeGenerator
             sb.AppendLine($"    image: {options.CephImage}");
             sb.AppendLine("    container_name: ceph-mds");
             sb.AppendLine("    restart: unless-stopped");
+            sb.AppendLine("    entrypoint: /entrypoint.sh");
             sb.AppendLine("    env_file: .env");
             sb.AppendLine("    environment:");
             sb.AppendLine("      - CEPH_DAEMON=MDS");
+            sb.AppendLine($"      - CEPH_PUBLIC_NETWORK={options.ClusterNetwork}");
             sb.AppendLine("    volumes:");
             sb.AppendLine("      - ceph-mds-data:/var/lib/ceph");
-            sb.AppendLine("      - ./ceph.conf:/etc/ceph/ceph.conf:ro");
+            sb.AppendLine("      - ceph-etc:/etc/ceph");
+            sb.AppendLine("      - ./entrypoint.sh:/entrypoint.sh:ro");
             sb.AppendLine("    depends_on:");
-            sb.AppendLine("      - ceph-mon1");
+            sb.AppendLine("      ceph-mon1:");
+            sb.AppendLine("        condition: service_healthy");
             sb.AppendLine("    networks:");
             sb.AppendLine("      ceph-net:");
             sb.AppendLine("        ipv4_address: 172.20.4.2");
@@ -167,6 +196,7 @@ public class DockerComposeGenerator
 
         // Named volumes
         sb.AppendLine("volumes:");
+        sb.AppendLine("  ceph-etc:");
         for (int i = 0; i < options.MonitorCount; i++)
             sb.AppendLine($"  ceph-mon{i + 1}-data:");
         for (int i = 0; i < options.MgrCount; i++)
@@ -188,7 +218,7 @@ public class DockerComposeGenerator
         sb.AppendLine($"        - subnet: {options.ClusterNetwork}");
 
         string path = Path.Combine(options.OutputDirectory, "docker-compose.yml");
-        File.WriteAllText(path, sb.ToString());
+        WriteUnixText(path, sb.ToString());
         return path;
     }
 
@@ -220,7 +250,7 @@ osd_max_object_namespace_len = 64
 """;
 
         string path = Path.Combine(options.OutputDirectory, "ceph.conf");
-        File.WriteAllText(path, content);
+        WriteUnixText(path, content);
         return path;
     }
 
@@ -240,11 +270,20 @@ if [ -z "${CEPH_DAEMON}" ]; then
   exit 1
 fi
 
+# Copy the seed ceph.conf into /etc/ceph if not already present.
+# The MON bootstrap writes keyrings into /etc/ceph, so ceph.conf cannot
+# be bind-mounted directly at /etc/ceph/ceph.conf (read-only mount would
+# prevent keyring writes). Instead we stage it as /ceph.conf.seed and
+# copy it here on first run.
+if [ -f /ceph.conf.seed ] && [ ! -f /etc/ceph/ceph.conf ]; then
+  cp /ceph.conf.seed /etc/ceph/ceph.conf
+fi
+
 exec /opt/ceph-container/bin/entrypoint.sh
 """;
 
         string path = Path.Combine(options.OutputDirectory, "entrypoint.sh");
-        File.WriteAllText(path, content);
+        WriteUnixText(path, content);
         return path;
     }
 
@@ -265,7 +304,7 @@ NETWORK_AUTO_DETECT=4
 """;
 
         string path = Path.Combine(options.OutputDirectory, ".env");
-        File.WriteAllText(path, content);
+        WriteUnixText(path, content);
         return path;
     }
 
