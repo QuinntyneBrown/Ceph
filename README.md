@@ -1,87 +1,122 @@
-# Ceph
+# Ceph CLI
 
 A .NET CLI tool that scaffolds and manages a [Ceph](https://ceph.io/) distributed storage cluster running inside **Docker on Windows** (via WSL2 and Docker Desktop).
 
 ## Features
 
-- Generate a fully configured Ceph cluster with a single command
-- Customizable topology: configure monitor, OSD, and manager counts
-- Optional RADOS Gateway (S3/Swift API) and Metadata Server (CephFS) support
-- Built-in environment diagnostics for WSL2, Docker, disk space, and networking
-- Auto-remediation of common Windows/Docker configuration issues
-- Lifecycle management: start, stop, and monitor your cluster
+- **One-command cluster setup** -- generate a fully configured, multi-container Ceph cluster
+- **Customizable topology** -- configure monitor, OSD, and manager counts
+- **Optional services** -- RADOS Gateway (S3/Swift API) and Metadata Server (CephFS)
+- **Full lifecycle management** -- init, start, stop, and monitor your cluster
+- **Environment diagnostics** -- 9 automated checks for WSL2, Docker, disk, and networking
+- **Auto-remediation** -- fix common Windows/Docker issues with a single command
+
+## Quick Start
+
+```powershell
+# 1. Build the tool
+dotnet build
+
+# 2. Check your environment
+dotnet run --project src/Ceph.Cli -- diagnose
+
+# 3. Auto-fix any issues
+dotnet run --project src/Ceph.Cli -- fix
+
+# 4. Generate cluster files
+dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
+
+# 5. Start the cluster
+dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+
+# 6. Check cluster health (wait ~60 s for bootstrap)
+dotnet run --project src/Ceph.Cli -- status --dir C:\ceph-cluster
+```
 
 ## Prerequisites
 
-| Requirement | Minimum |
-|-------------|---------|
-| .NET SDK | 8.0 |
-| Windows 10/11 | 21H2 (for WSL2) |
-| WSL2 | Default version 2 |
-| Docker Desktop | 4.x |
-
-## Build
-
-```powershell
-dotnet build
-```
-
-## Usage
-
-```powershell
-# Generate docker-compose files and config in the current directory
-ceph-cli init
-
-# Generate with custom options
-ceph-cli init --output C:\ceph-cluster --monitors 3 --osds 5 --rgw --mds
-
-# Start the cluster
-ceph-cli up
-
-# Check cluster health
-ceph-cli status
-
-# Stop the cluster
-ceph-cli down
-
-# Stop and remove persistent data volumes
-ceph-cli down --volumes
-
-# Diagnose common Windows/Docker issues
-ceph-cli diagnose
-
-# Output diagnostics as JSON
-ceph-cli diagnose --json
-
-# Attempt automatic fixes for detected issues
-ceph-cli fix
-
-# Preview what fix would do without making changes
-ceph-cli fix --dry-run
-```
+| Requirement      | Minimum              |
+|------------------|----------------------|
+| .NET SDK         | 8.0                  |
+| Windows          | 10/11 21H2 or later  |
+| WSL2             | Default version 2    |
+| Docker Desktop   | 4.x (WSL2 backend)   |
+| Free disk space  | 10 GB                |
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `init` | Generates `docker-compose.yml`, `ceph.conf`, `.env`, `entrypoint.sh`, `wslconfig.recommended`, and a `README.md` |
-| `up` | Starts the Ceph cluster via `docker compose up -d` |
-| `down` | Stops and removes containers; use `--volumes` to also remove persistent data |
-| `status` | Shows container status and Ceph cluster health |
-| `diagnose` | Checks WSL2, Docker Desktop, Docker daemon, Docker Compose, memory, disk space, and network configuration |
-| `fix` | Automatically remediates detected issues (WSL2 default version, `~/.wslconfig`, Docker Desktop start, network conflicts) |
+| Command    | Description |
+|------------|-------------|
+| `init`     | Generate `docker-compose.yml`, `ceph.conf`, `.env`, `entrypoint.sh`, and supporting files |
+| `up`       | Start the Ceph cluster via `docker compose up -d` |
+| `down`     | Stop and remove containers; `--volumes` removes persistent data |
+| `status`   | Show container status and Ceph cluster health |
+| `diagnose` | Run 9 environment checks (WSL2, Docker, disk, network, backend) |
+| `fix`      | Auto-remediate detected issues (WSL2 version, memory config, Docker, network conflicts) |
 
-## Init Options
+## Command Reference
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--output, -o` | `.` | Output directory for generated files |
-| `--monitors, -m` | `1` | Number of MON daemons |
-| `--osds, -s` | `3` | Number of OSD daemons |
-| `--managers` | `1` | Number of MGR daemons |
-| `--image` | `quay.io/ceph/ceph:v18` | Ceph container image |
-| `--rgw` | `false` | Include RADOS Gateway for S3/Swift API |
-| `--mds` | `false` | Include Metadata Server for CephFS |
+### `init`
+
+Generate all files needed to run a Ceph cluster in Docker.
+
+```powershell
+ceph-cli init [options]
+```
+
+| Option           | Default                      | Description |
+|------------------|------------------------------|-------------|
+| `--output, -o`   | `.` (current directory)      | Output directory for generated files |
+| `--monitors, -m` | `1`                          | Number of MON daemons |
+| `--osds, -s`     | `3`                          | Number of OSD daemons |
+| `--managers`      | `1`                          | Number of MGR daemons |
+| `--image`         | `quay.io/ceph/ceph:v18`     | Ceph container image |
+| `--rgw`           | `false`                      | Include RADOS Gateway (S3/Swift API) |
+| `--mds`           | `false`                      | Include Metadata Server (CephFS) |
+
+### `up`
+
+```powershell
+ceph-cli up [--dir <path>]
+```
+
+### `down`
+
+```powershell
+ceph-cli down [--dir <path>] [--volumes]
+```
+
+### `status`
+
+```powershell
+ceph-cli status [--dir <path>]
+```
+
+### `diagnose`
+
+```powershell
+ceph-cli diagnose [--json]
+```
+
+### `fix`
+
+```powershell
+ceph-cli fix [--dry-run] [--wsl-memory <GB>]
+```
+
+| Option           | Default | Description |
+|------------------|---------|-------------|
+| `--dry-run`      | `false` | Preview fixes without applying |
+| `--wsl-memory`   | `6`     | WSL2 memory limit in GB for `~/.wslconfig` |
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | Step-by-step setup from scratch |
+| [Architecture](docs/architecture.md) | How the cluster, networking, and bootstrap work |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and how to resolve them |
+| [Command Reference](docs/command-reference.md) | Detailed reference for every command and option |
 
 ## Project Structure
 
@@ -89,22 +124,27 @@ ceph-cli fix --dry-run
 Ceph/
 ├── src/
 │   └── Ceph.Cli/
-│       ├── Program.cs              # Entry point and command registration
-│       ├── Commands/               # Command implementations
-│       │   ├── InitCommand.cs
-│       │   ├── UpCommand.cs
-│       │   ├── DownCommand.cs
-│       │   ├── StatusCommand.cs
-│       │   ├── DiagnoseCommand.cs
-│       │   └── FixCommand.cs
-│       └── Services/               # Business logic
-│           ├── DockerComposeGenerator.cs
-│           ├── EnvironmentChecker.cs
-│           └── IssueFixer.cs
-└── tests/
-    └── Ceph.Cli.Tests/            # xUnit tests
-        ├── DockerComposeGeneratorTests.cs
-        └── EnvironmentCheckerTests.cs
+│       ├── Program.cs                    # Entry point
+│       ├── Commands/
+│       │   ├── InitCommand.cs            # Scaffold cluster files
+│       │   ├── UpCommand.cs              # Start cluster
+│       │   ├── DownCommand.cs            # Stop cluster
+│       │   ├── StatusCommand.cs          # Check health
+│       │   ├── DiagnoseCommand.cs        # Environment checks
+│       │   └── FixCommand.cs             # Auto-remediation
+│       └── Services/
+│           ├── DockerComposeGenerator.cs  # File generation
+│           ├── EnvironmentChecker.cs      # 9 diagnostic checks
+│           └── IssueFixer.cs              # Automated fixes
+├── tests/
+│   └── Ceph.Cli.Tests/
+│       ├── DockerComposeGeneratorTests.cs
+│       └── EnvironmentCheckerTests.cs
+└── docs/
+    ├── getting-started.md
+    ├── architecture.md
+    ├── troubleshooting.md
+    └── command-reference.md
 ```
 
 ## Run Tests
@@ -112,10 +152,6 @@ Ceph/
 ```powershell
 dotnet test
 ```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 ## License
 
