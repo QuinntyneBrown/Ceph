@@ -78,7 +78,6 @@ public class IssueFixer
     {
         try
         {
-            // Find the conflicting network
             var inspectResult = EnvironmentChecker.RunProcess("docker", "network ls -q", captureOutput: true);
             if (inspectResult.exitCode != 0 || string.IsNullOrWhiteSpace(inspectResult.output))
                 return new FixResult("Docker network conflict", true, "No Docker networks to check.");
@@ -86,11 +85,19 @@ public class IssueFixer
             var networkIds = inspectResult.output.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (var id in networkIds)
             {
-                var info = EnvironmentChecker.RunProcess("docker", $"network inspect {id.Trim()} --format {{{{range .IPAM.Config}}}}{{{{.Subnet}}}}{{{{end}}}}", captureOutput: true);
+                var info = EnvironmentChecker.RunProcess("docker", $"network inspect {id.Trim()}", captureOutput: true);
                 if (info.exitCode == 0 && info.output.Contains("172.20."))
                 {
-                    var nameInfo = EnvironmentChecker.RunProcess("docker", $"network inspect {id.Trim()} --format {{{{.Name}}}}", captureOutput: true);
-                    string netName = nameInfo.output.Trim();
+                    // Extract network name from JSON output
+                    string netName = id.Trim();
+                    int nameIdx = info.output.IndexOf("\"Name\":", StringComparison.Ordinal);
+                    if (nameIdx >= 0)
+                    {
+                        int start = info.output.IndexOf('"', nameIdx + 7) + 1;
+                        int end = info.output.IndexOf('"', start);
+                        if (start > 0 && end > start)
+                            netName = info.output[start..end];
+                    }
 
                     var (exitCode, output) = EnvironmentChecker.RunProcess("docker", $"network rm {netName}", captureOutput: true);
                     if (exitCode == 0)

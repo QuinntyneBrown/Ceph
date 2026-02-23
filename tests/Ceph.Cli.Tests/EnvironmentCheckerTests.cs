@@ -63,4 +63,43 @@ public class EnvironmentCheckerTests
         Assert.True(result.Passed);
         Assert.Null(result.RemediationHint);
     }
+
+    [Fact]
+    public void CheckDiskSpace_ReturnsResult()
+    {
+        var checker = new EnvironmentChecker();
+        var result = checker.CheckDiskSpace();
+        Assert.NotNull(result);
+        Assert.Equal("Disk space", result.Name);
+        Assert.NotEmpty(result.Message);
+    }
+
+    [Fact]
+    public void CheckDockerNetworkConflict_ReturnsResult()
+    {
+        var checker = new EnvironmentChecker();
+        var result = checker.CheckDockerNetworkConflict();
+        Assert.NotNull(result);
+        Assert.Equal("Docker network conflict", result.Name);
+    }
+
+    [Fact]
+    public void CheckDockerWsl2Backend_ReturnsResult()
+    {
+        var checker = new EnvironmentChecker();
+        var result = checker.CheckDockerWsl2Backend();
+        Assert.NotNull(result);
+        Assert.Equal("Docker WSL2 backend", result.Name);
+    }
+
+    [Fact]
+    public void RunAll_IncludesNewPortabilityChecks()
+    {
+        var checker = new EnvironmentChecker();
+        var results = checker.RunAll();
+        var names = results.Select(r => r.Name).ToList();
+        Assert.Contains("Disk space", names);
+        Assert.Contains("Docker network conflict", names);
+        Assert.Contains("Docker WSL2 backend", names);
+    }
 }

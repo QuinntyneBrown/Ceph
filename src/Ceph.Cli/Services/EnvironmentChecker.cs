@@ -179,28 +179,33 @@ public class EnvironmentChecker
     {
         try
         {
-            var result = RunProcess("docker", "network ls --format {{.Name}}", captureOutput: true);
-            if (result.exitCode != 0)
-                return new CheckResult("Docker network conflict", true, "Skipped – Docker not reachable.");
-
-            // Check if any existing network uses the 172.20.0.0/16 subnet
             var inspectResult = RunProcess("docker", "network ls -q", captureOutput: true);
             if (inspectResult.exitCode != 0 || string.IsNullOrWhiteSpace(inspectResult.output))
-                return new CheckResult("Docker network conflict", true, "No Docker networks found – OK.");
+                return new CheckResult("Docker network conflict", true, "Skipped – Docker not reachable.");
 
             var networkIds = inspectResult.output.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (var id in networkIds)
             {
-                var info = RunProcess("docker", $"network inspect {id.Trim()} --format {{{{range .IPAM.Config}}}}{{{{.Subnet}}}}{{{{end}}}}", captureOutput: true);
+                // Use JSON output to avoid Go template format string quoting issues across platforms
+                var info = RunProcess("docker", $"network inspect {id.Trim()}", captureOutput: true);
                 if (info.exitCode == 0 && info.output.Contains("172.20."))
                 {
-                    var nameInfo = RunProcess("docker", $"network inspect {id.Trim()} --format {{{{.Name}}}}", captureOutput: true);
-                    string netName = nameInfo.output.Trim();
+                    // Extract network name from the JSON output
+                    string netName = id.Trim();
+                    int nameIdx = info.output.IndexOf("\"Name\":", StringComparison.Ordinal);
+                    if (nameIdx >= 0)
+                    {
+                        int start = info.output.IndexOf('"', nameIdx + 7) + 1;
+                        int end = info.output.IndexOf('"', start);
+                        if (start > 0 && end > start)
+                            netName = info.output[start..end];
+                    }
+
                     return new CheckResult(
                         "Docker network conflict",
                         false,
                         $"Docker network '{netName}' already uses subnet 172.20.x.x which conflicts with Ceph.",
-                        $"Remove the conflicting network: docker network rm {netName}  (or use 'ceph-cli init' with a different --network-subnet)"
+                        $"Remove the conflicting network: docker network rm {netName}"
                     );
                 }
             }
@@ -220,28 +225,23 @@ public class EnvironmentChecker
 
         try
         {
-            var result = RunProcess("docker", "info --format {{.Isolation}}", captureOutput: true);
-            if (result.exitCode != 0)
+            var fullInfo = RunProcess("docker", "info", captureOutput: true);
+            if (fullInfo.exitCode != 0)
                 return new CheckResult("Docker WSL2 backend", true, "Skipped – Docker not reachable.");
 
-            // Check docker info for WSL2 indicators
-            var fullInfo = RunProcess("docker", "info", captureOutput: true);
-            if (fullInfo.exitCode == 0)
-            {
-                bool usesWsl2 = fullInfo.output.Contains("WSL", StringComparison.OrdinalIgnoreCase)
-                    || fullInfo.output.Contains("linux", StringComparison.OrdinalIgnoreCase);
-                if (usesWsl2)
-                    return new CheckResult("Docker WSL2 backend", true, "Docker is using the WSL2 backend – OK.");
+            bool usesWsl2 = fullInfo.output.Contains("WSL", StringComparison.OrdinalIgnoreCase)
+                || fullInfo.output.Contains("linux", StringComparison.OrdinalIgnoreCase);
+            if (usesWsl2)
+                return new CheckResult("Docker WSL2 backend", true, "Docker is using the WSL2 backend – OK.");
 
-                bool usesHyperV = fullInfo.output.Contains("Hyper-V", StringComparison.OrdinalIgnoreCase);
-                if (usesHyperV)
-                    return new CheckResult(
-                        "Docker WSL2 backend",
-                        false,
-                        "Docker Desktop appears to be using the Hyper-V backend instead of WSL2.",
-                        "Open Docker Desktop Settings > General > enable 'Use the WSL 2 based engine', then restart Docker Desktop."
-                    );
-            }
+            bool usesHyperV = fullInfo.output.Contains("Hyper-V", StringComparison.OrdinalIgnoreCase);
+            if (usesHyperV)
+                return new CheckResult(
+                    "Docker WSL2 backend",
+                    false,
+                    "Docker Desktop appears to be using the Hyper-V backend instead of WSL2.",
+                    "Open Docker Desktop Settings > General > enable 'Use the WSL 2 based engine', then restart Docker Desktop."
+                );
 
             return new CheckResult("Docker WSL2 backend", true, "Could not determine Docker backend – assuming WSL2.");
         }
@@ -270,6 +270,12 @@ public class EnvironmentChecker
 
         string output = captureOutput ? process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd() : string.Empty;
         process.WaitForExit();
+
+        // Some Windows tools (notably wsl.exe) output UTF-16LE with embedded null bytes.
+        // Strip them so string comparisons work correctly.
+        if (captureOutput && output.Contains('\0'))
+            output = output.Replace("\0", "");
+
         return (process.ExitCode, output);
     }
 }

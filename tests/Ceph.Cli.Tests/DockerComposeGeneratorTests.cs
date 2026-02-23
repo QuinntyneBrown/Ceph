@@ -180,4 +180,146 @@ public class DockerComposeGeneratorTests
                 Directory.Delete(outputDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void Generate_ContainerFiles_HaveUnixLineEndings()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            // Files mounted into Linux containers must have LF-only line endings
+            string[] containerFiles = ["docker-compose.yml", "ceph.conf", "entrypoint.sh", ".env"];
+            foreach (var fileName in containerFiles)
+            {
+                byte[] bytes = File.ReadAllBytes(Path.Combine(outputDir, fileName));
+                bool hasCrlf = false;
+                for (int i = 0; i < bytes.Length - 1; i++)
+                {
+                    if (bytes[i] == 0x0D && bytes[i + 1] == 0x0A)
+                    {
+                        hasCrlf = true;
+                        break;
+                    }
+                }
+                Assert.False(hasCrlf, $"{fileName} contains CRLF line endings – will break in Linux containers");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Generate_DockerCompose_HasSharedEtcCephVolume()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            string compose = File.ReadAllText(Path.Combine(outputDir, "docker-compose.yml"));
+            Assert.Contains("ceph-etc:/etc/ceph", compose);
+            Assert.Contains("ceph-etc:", compose);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Generate_DockerCompose_HasEntrypointDirective()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            string compose = File.ReadAllText(Path.Combine(outputDir, "docker-compose.yml"));
+            Assert.Contains("entrypoint: /entrypoint.sh", compose);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Generate_DockerCompose_HasCephPublicNetwork()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            string compose = File.ReadAllText(Path.Combine(outputDir, "docker-compose.yml"));
+            Assert.Contains("CEPH_PUBLIC_NETWORK=", compose);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Generate_DockerCompose_DependsOnServiceHealthy()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            string compose = File.ReadAllText(Path.Combine(outputDir, "docker-compose.yml"));
+            Assert.Contains("condition: service_healthy", compose);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Generate_Entrypoint_CopiesSeedConfig()
+    {
+        string outputDir = Path.Combine(Path.GetTempPath(), $"ceph-test-{Guid.NewGuid():N}");
+        try
+        {
+            var generator = new DockerComposeGenerator();
+            var options = new DockerComposeGenerator.GenerateOptions(OutputDirectory: outputDir);
+
+            generator.Generate(options);
+
+            string entrypoint = File.ReadAllText(Path.Combine(outputDir, "entrypoint.sh"));
+            Assert.Contains("ceph.conf.seed", entrypoint);
+            Assert.Contains("cp /ceph.conf.seed /etc/ceph/ceph.conf", entrypoint);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDir))
+                Directory.Delete(outputDir, recursive: true);
+        }
+    }
 }
