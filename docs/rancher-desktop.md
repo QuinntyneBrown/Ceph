@@ -63,7 +63,7 @@ wsl --set-default-version 2
 The `~/.wslconfig` recommendations also apply. You can use the CLI to configure it:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- fix --wsl-memory 6
+ceph-cli fix --wsl-memory 6
 wsl --shutdown
 ```
 
@@ -72,7 +72,7 @@ wsl --shutdown
 Run `diagnose` as normal:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- diagnose
+ceph-cli diagnose
 ```
 
 ### Expected Differences
@@ -122,7 +122,7 @@ The single failure for "Docker Desktop installed" is expected. All other checks 
 The `fix` command works with Rancher Desktop with one exception:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 ```
 
 | Fix | Behavior with Rancher Desktop |
@@ -137,27 +137,27 @@ If the Docker daemon is not running, start Rancher Desktop manually before runni
 ## Full Workflow
 
 ```powershell
-# 1. Build the CLI
-dotnet build
+# 1. Install the CLI
+dotnet tool install -g QuinntyneBrown.Ceph.Cli
 
 # 2. Start Rancher Desktop (if not already running)
 #    Launch from the Start menu or taskbar
 
 # 3. Run diagnostics (expect "Docker Desktop installed" to fail)
-dotnet run --project src/Ceph.Cli -- diagnose
+ceph-cli diagnose
 
 # 4. Fix any real issues (ignore Docker Desktop warning)
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 wsl --shutdown
 
 # 5. Generate cluster files
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
+ceph-cli init --output C:\ceph-cluster
 
 # 6. Start the cluster
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+ceph-cli up --dir C:\ceph-cluster
 
 # 7. Wait ~60 seconds, then check health
-dotnet run --project src/Ceph.Cli -- status --dir C:\ceph-cluster
+ceph-cli status --dir C:\ceph-cluster
 ```
 
 ## Troubleshooting
@@ -186,10 +186,10 @@ Rancher Desktop creates its own Docker networks. If you see a subnet conflict wi
 
 ```powershell
 # Detect conflicts
-dotnet run --project src/Ceph.Cli -- diagnose
+ceph-cli diagnose
 
 # Auto-remove conflicting networks
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 ```
 
 ### Port forwarding differences

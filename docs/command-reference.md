@@ -332,40 +332,40 @@ After running `fix`, you may need to:
 ### Full setup from scratch
 
 ```powershell
-# Build the CLI
-dotnet build
+# Install the CLI
+dotnet tool install -g QuinntyneBrown.Ceph.Cli
 
 # Check and fix environment
-dotnet run --project src/Ceph.Cli -- diagnose
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli diagnose
+ceph-cli fix
 wsl --shutdown
 
 # Generate and start cluster
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph
+ceph-cli init --output C:\ceph
+ceph-cli up --dir C:\ceph
 
 # Wait ~60 seconds, then check
-dotnet run --project src/Ceph.Cli -- status --dir C:\ceph
+ceph-cli status --dir C:\ceph
 ```
 
 ### Reset a broken cluster
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- down --dir C:\ceph --volumes
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph
+ceph-cli down --dir C:\ceph --volumes
+ceph-cli init --output C:\ceph
+ceph-cli up --dir C:\ceph
 ```
 
 ### Scale up with S3 API
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- down --dir C:\ceph --volumes
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph -m 3 -s 5 --rgw
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph
+ceph-cli down --dir C:\ceph --volumes
+ceph-cli init --output C:\ceph -m 3 -s 5 --rgw
+ceph-cli up --dir C:\ceph
 ```
 
 ### CI/CD diagnostic check
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- diagnose --json | ConvertFrom-Json | Where-Object { -not $_.passed }
+ceph-cli diagnose --json | ConvertFrom-Json | Where-Object { -not $_.passed }
 ```

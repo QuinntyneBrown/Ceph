@@ -35,22 +35,20 @@ Download from [docker.com](https://www.docker.com/products/docker-desktop/) and 
 
 > **Alternative:** You can use [Rancher Desktop](https://rancherdesktop.io/) instead of Docker Desktop. See the [Rancher Desktop Guide](rancher-desktop.md) for setup instructions.
 
-## 2. Build the CLI
-
-Clone the repository and build:
+## 2. Install the CLI
 
 ```powershell
-git clone https://github.com/QuinntyneBrown/Ceph.git
-cd Ceph
-dotnet build
+dotnet tool install -g QuinntyneBrown.Ceph.Cli
 ```
+
+This installs the `ceph-cli` command globally.
 
 ## 3. Check Your Environment
 
 Run the built-in diagnostics to verify everything is configured correctly:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- diagnose
+ceph-cli diagnose
 ```
 
 You should see output like:
@@ -80,10 +78,10 @@ The CLI can automatically fix most issues it detects:
 
 ```powershell
 # Preview what will be changed
-dotnet run --project src/Ceph.Cli -- fix --dry-run
+ceph-cli fix --dry-run
 
 # Apply fixes
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 ```
 
 After fixing, run `diagnose` again to confirm all 9 checks pass.
@@ -106,13 +104,13 @@ After fixing, run `diagnose` again to confirm all 9 checks pass.
 Generate a default cluster (1 MON, 1 MGR, 3 OSDs):
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
+ceph-cli init --output C:\ceph-cluster
 ```
 
 Or generate a larger cluster with optional services:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- init `
+ceph-cli init `
     --output C:\ceph-cluster `
     --monitors 3 `
     --osds 5 `
@@ -135,7 +133,7 @@ This creates the following files in the output directory:
 ## 6. Start the Cluster
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+ceph-cli up --dir C:\ceph-cluster
 ```
 
 The first start will:
@@ -149,7 +147,7 @@ The first start will:
 Wait about 60 seconds for the bootstrap to complete, then:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- status --dir C:\ceph-cluster
+ceph-cli status --dir C:\ceph-cluster
 ```
 
 A healthy cluster looks like:
@@ -202,10 +200,10 @@ If you included the RADOS Gateway (`--rgw`), the S3-compatible API is available 
 
 ```powershell
 # Stop containers (data is preserved in Docker volumes)
-dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster
+ceph-cli down --dir C:\ceph-cluster
 
 # Stop and destroy all data
-dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster --volumes
+ceph-cli down --dir C:\ceph-cluster --volumes
 ```
 
 ## Using Rancher Desktop?

@@ -7,13 +7,13 @@ This guide covers common problems when running a Ceph cluster with `ceph-cli` on
 Always start by running the built-in diagnostics:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- diagnose
+ceph-cli diagnose
 ```
 
 Then apply automatic fixes:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 ```
 
 ## Docker & WSL2 Issues
@@ -28,7 +28,7 @@ dotnet run --project src/Ceph.Cli -- fix
 
 ```powershell
 # Auto-fix via CLI
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 
 # Or start manually
 Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
@@ -69,10 +69,10 @@ wsl --set-default-version 2
 
 ```powershell
 # Auto-fix with 6 GB (default)
-dotnet run --project src/Ceph.Cli -- fix
+ceph-cli fix
 
 # Or specify a custom amount
-dotnet run --project src/Ceph.Cli -- fix --wsl-memory 8
+ceph-cli fix --wsl-memory 8
 ```
 
 Then restart WSL:
@@ -95,8 +95,8 @@ And restart Docker Desktop.
 
 ```powershell
 # Automatic detection and removal
-dotnet run --project src/Ceph.Cli -- diagnose   # shows the conflicting network name
-dotnet run --project src/Ceph.Cli -- fix         # removes it
+ceph-cli diagnose   # shows the conflicting network name
+ceph-cli fix         # removes it
 
 # Or remove manually
 docker network ls
@@ -122,9 +122,9 @@ docker network rm <conflicting-network-name>
 **Fix:** Regenerate all files and restart from scratch:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster --volumes
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+ceph-cli down --dir C:\ceph-cluster --volumes
+ceph-cli init --output C:\ceph-cluster
+ceph-cli up --dir C:\ceph-cluster
 ```
 
 ### OSDs keep restarting
@@ -140,8 +140,8 @@ dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
 
 2. **Previous failed bootstrap** -- If the OSD partially bootstrapped and left stale state, remove volumes and restart:
    ```powershell
-   dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster --volumes
-   dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+   ceph-cli down --dir C:\ceph-cluster --volumes
+   ceph-cli up --dir C:\ceph-cluster
    ```
 
 ### Containers crash immediately
@@ -267,8 +267,8 @@ docker system prune -f
 **Fix:** There is no recovery. The cluster must be re-initialized:
 
 ```powershell
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
+ceph-cli init --output C:\ceph-cluster
+ceph-cli up --dir C:\ceph-cluster
 ```
 
 **Prevention:** Never use `--volumes` unless you intend to destroy all data. A plain `down` preserves data and allows `up` to resume the existing cluster.
@@ -311,6 +311,6 @@ If you are using Rancher Desktop instead of Docker Desktop, see the [Rancher Des
 
 If the issue persists after trying the steps above:
 
-1. Collect diagnostic output: `dotnet run --project src/Ceph.Cli -- diagnose --json`
+1. Collect diagnostic output: `ceph-cli diagnose --json`
 2. Collect container logs: `docker logs ceph-mon1 > mon.log 2>&1`
 3. Open an issue at the project repository with the diagnostic output and logs
