@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ceph.Cli/Ceph.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ceph.Cli.Tests/Ceph.Cli.Tests.csproj" />
+  </Folder>
+</Solution>
