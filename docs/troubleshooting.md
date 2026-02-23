@@ -299,6 +299,14 @@ docker exec ceph-mon1 ceph df
 docker exec -it ceph-mon1 bash
 ```
 
+## Rancher Desktop Users
+
+If you are using Rancher Desktop instead of Docker Desktop, see the [Rancher Desktop Guide](rancher-desktop.md) for:
+
+- Expected diagnostic differences (the "Docker Desktop installed" check will fail -- this is normal)
+- Container runtime requirements (must use dockerd, not containerd)
+- Rancher Desktop-specific troubleshooting steps
+
 ## Getting Help
 
 If the issue persists after trying the steps above:

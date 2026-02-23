@@ -114,6 +114,7 @@ ceph-cli fix [--dry-run] [--wsl-memory <GB>]
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](docs/getting-started.md) | Step-by-step setup from scratch |
+| [Rancher Desktop](docs/rancher-desktop.md) | Using Rancher Desktop instead of Docker Desktop |
 | [Architecture](docs/architecture.md) | How the cluster, networking, and bootstrap work |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and how to resolve them |
 | [Command Reference](docs/command-reference.md) | Detailed reference for every command and option |

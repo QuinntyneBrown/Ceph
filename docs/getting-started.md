@@ -33,6 +33,8 @@ wsl --set-default-version 2
 
 Download from [docker.com](https://www.docker.com/products/docker-desktop/) and make sure **"Use the WSL 2 based engine"** is enabled in Settings > General.
 
+> **Alternative:** You can use [Rancher Desktop](https://rancherdesktop.io/) instead of Docker Desktop. See the [Rancher Desktop Guide](rancher-desktop.md) for setup instructions.
+
 ## 2. Build the CLI
 
 Clone the repository and build:
@@ -206,8 +208,13 @@ dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster
 dotnet run --project src/Ceph.Cli -- down --dir C:\ceph-cluster --volumes
 ```
 
+## Using Rancher Desktop?
+
+If you prefer Rancher Desktop over Docker Desktop, see the [Rancher Desktop Guide](rancher-desktop.md) for setup differences and expected diagnostic output.
+
 ## Next Steps
 
 - [Architecture Guide](architecture.md) -- understand how the cluster is structured
+- [Rancher Desktop Guide](rancher-desktop.md) -- using Rancher Desktop instead of Docker Desktop
 - [Troubleshooting Guide](troubleshooting.md) -- resolve common issues
 - [Command Reference](command-reference.md) -- full details on every command and option
