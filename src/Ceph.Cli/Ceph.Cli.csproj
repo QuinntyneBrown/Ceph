@@ -5,7 +5,24 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- NuGet dotnet tool configuration -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ceph-cli</ToolCommandName>
+    <PackageId>QuinntyneBrown.Ceph.Cli</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>QuinntyneBrown</Authors>
+    <Description>CLI tool that scaffolds and manages a Ceph distributed storage cluster running in Docker on Windows (via WSL2).</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/QuinntyneBrown/Ceph</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/QuinntyneBrown/Ceph</RepositoryUrl>
+    <PackageTags>ceph;docker;wsl2;storage;cli</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />

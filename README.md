@@ -11,26 +11,31 @@ A .NET CLI tool that scaffolds and manages a [Ceph](https://ceph.io/) distribute
 - **Environment diagnostics** -- 9 automated checks for WSL2, Docker, disk, and networking
 - **Auto-remediation** -- fix common Windows/Docker issues with a single command
 
+## Installation
+
+```powershell
+dotnet tool install -g QuinntyneBrown.Ceph.Cli
+```
+
+This installs the `ceph-cli` command globally.
+
 ## Quick Start
 
 ```powershell
-# 1. Build the tool
-dotnet build
+# 1. Check your environment
+ceph-cli diagnose
 
-# 2. Check your environment
-dotnet run --project src/Ceph.Cli -- diagnose
+# 2. Auto-fix any issues
+ceph-cli fix
 
-# 3. Auto-fix any issues
-dotnet run --project src/Ceph.Cli -- fix
+# 3. Generate cluster files
+ceph-cli init --output C:\ceph-cluster
 
-# 4. Generate cluster files
-dotnet run --project src/Ceph.Cli -- init --output C:\ceph-cluster
+# 4. Start the cluster
+ceph-cli up --dir C:\ceph-cluster
 
-# 5. Start the cluster
-dotnet run --project src/Ceph.Cli -- up --dir C:\ceph-cluster
-
-# 6. Check cluster health (wait ~60 s for bootstrap)
-dotnet run --project src/Ceph.Cli -- status --dir C:\ceph-cluster
+# 5. Check cluster health (wait ~60 s for bootstrap)
+ceph-cli status --dir C:\ceph-cluster
 ```
 
 ## Prerequisites
