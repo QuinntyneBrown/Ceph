@@ -11,7 +11,7 @@ public class DockerComposeGenerator
         int MonitorCount = 1,
         int OsdCount = 3,
         int MgrCount = 1,
-        string CephImage = "quay.io/ceph/ceph:v18",
+        string CephImage = "quay.io/ceph/ceph:v17",
         string ClusterNetwork = "172.20.0.0/16",
         bool IncludeRgw = false,
         bool IncludeMds = false
@@ -369,12 +369,19 @@ case "${CEPH_DAEMON}" in
       OSD_DATA="/var/lib/ceph/osd/${CLUSTER}-${OSD_ID}"
       mkdir -p "${OSD_DATA}"
 
+      # Create a file-backed block device for bluestore (Ceph v18+ default).
+      # Docker directory mounts do not provide real block devices, so we use
+      # a sparse file and symlink it as the bluestore "block".
+      BLOCK_FILE="/var/lib/ceph/osd-block-${OSD_ID}"
+      dd if=/dev/zero of="${BLOCK_FILE}" bs=1M count=0 seek=5120 2>/dev/null
+      ln -sf "${BLOCK_FILE}" "${OSD_DATA}/block"
+
       # Create the OSD keyring via the admin auth
       ceph auth get-or-create "osd.${OSD_ID}" \
         mon 'allow profile osd' osd 'allow *' mgr 'allow profile osd' \
         -o "${OSD_DATA}/keyring"
 
-      # Prepare the OSD filesystem without contacting mon for config
+      # Prepare the OSD with bluestore
       ceph-osd -i "${OSD_ID}" --mkfs --osd-uuid "${OSD_UUID}" --no-mon-config
 
       ceph osd crush add "osd.${OSD_ID}" 1.0 host="${OSD_NAME}"

@@ -34,7 +34,7 @@ public class InitCommand : Command
         var imageOption = new Option<string>(
             "--image",
             description: "Ceph container image to use",
-            getDefaultValue: () => "quay.io/ceph/ceph:v18");
+            getDefaultValue: () => "quay.io/ceph/ceph:v17");
 
         var rgwOption = new Option<bool>(
             "--rgw",

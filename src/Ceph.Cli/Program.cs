@@ -7,6 +7,7 @@ rootCommand.AddCommand(new InitCommand());
 rootCommand.AddCommand(new UpCommand());
 rootCommand.AddCommand(new DownCommand());
 rootCommand.AddCommand(new StatusCommand());
+rootCommand.AddCommand(new LogsCommand());
 rootCommand.AddCommand(new DiagnoseCommand());
 rootCommand.AddCommand(new FixCommand());
 rootCommand.AddCommand(new InstallSkillCommand());
