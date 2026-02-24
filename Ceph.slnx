@@ -1,8 +1,12 @@
 <Solution>
+  <Folder Name="/playground/">
+    <Project Path="playground/Ceph.Playground.Api/Ceph.Playground.Api.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Ceph.Cli/Ceph.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ceph.Cli.Tests/Ceph.Cli.Tests.csproj" />
+    <Project Path="tests/Ceph.Playground.Tests/Ceph.Playground.Tests.csproj" />
   </Folder>
 </Solution>
