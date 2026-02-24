@@ -9,5 +9,6 @@ rootCommand.AddCommand(new DownCommand());
 rootCommand.AddCommand(new StatusCommand());
 rootCommand.AddCommand(new DiagnoseCommand());
 rootCommand.AddCommand(new FixCommand());
+rootCommand.AddCommand(new InstallSkillCommand());
 
 return await rootCommand.InvokeAsync(args);
